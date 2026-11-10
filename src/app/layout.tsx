@@ -24,6 +24,7 @@ export default function RootLayout({
   return (
     <html lang="id" className="dark">
       <body
+        suppressHydrationWarning
         className={`${inter.variable} ${inter.className} font-sans antialiased bg-canvas text-ink-primary min-h-screen`}
       >
         <Suspense fallback={null}>

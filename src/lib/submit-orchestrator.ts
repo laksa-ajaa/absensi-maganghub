@@ -35,6 +35,18 @@ export async function executeUserDailySubmit(
     };
   }
 
+  const automationConfig = await db.automationConfig.findUnique({
+    where: { userId },
+    select: { latitude: true, longitude: true },
+  });
+
+  if (automationConfig?.latitude == null || automationConfig.longitude == null) {
+    return {
+      success: false,
+      message: "Koordinat lokasi penempatan belum dikonfigurasi. Isi latitude dan longitude di Pengaturan terlebih dahulu.",
+    };
+  }
+
   // 3. Dekripsi kredensial
   let email = "";
   let password = "";
@@ -154,6 +166,8 @@ export async function executeUserDailySubmit(
   // 8. Submit kehadiran & laporan harian
   const submitResult = await MagangHubApiClient.submitDailyLog(authToken, {
     date: dateStr,
+    latitude: automationConfig.latitude,
+    longitude: automationConfig.longitude,
     status: "PRESENT",
     activity_log: report.activity,
     lesson_learned: report.learning,

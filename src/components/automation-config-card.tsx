@@ -5,13 +5,15 @@ import toast from "react-hot-toast";
 import { Button } from "@/components/ui/button";
 import { WebhookCurlBox } from "@/components/webhook-curl-box";
 import { toggleAutomation, updateAutomationPreferences } from "@/actions/settings-actions";
-import { Cpu, Clock, Calendar } from "lucide-react";
+import { Cpu, Clock, Calendar, MapPin } from "lucide-react";
 
 interface AutomationConfigCardProps {
   isEnabled: boolean;
   webhookKey: string;
   scheduleTime?: string;
   scheduleDays?: string;
+  latitude?: number | null;
+  longitude?: number | null;
 }
 
 const DAYS_OF_WEEK = [
@@ -37,12 +39,21 @@ export function AutomationConfigCard({
   webhookKey,
   scheduleTime = "13:50",
   scheduleDays = "1,2,3,4,5,6",
+  latitude,
+  longitude,
 }: AutomationConfigCardProps) {
   const [isEnabled, setIsEnabled] = useState(initialEnabled);
   const [toggling, setToggling] = useState(false);
   const [saving, setSaving] = useState(false);
+  const [locating, setLocating] = useState(false);
   const [selectedDays, setSelectedDays] = useState<number[]>(() =>
     parseDays(scheduleDays)
+  );
+  const [latitudeValue, setLatitudeValue] = useState(
+    latitude == null ? "" : String(latitude)
+  );
+  const [longitudeValue, setLongitudeValue] = useState(
+    longitude == null ? "" : String(longitude)
   );
 
   const toggleDay = (dayId: number) => {
@@ -65,6 +76,37 @@ export function AutomationConfigCard({
 
   const applyPreset = (preset: number[]) => {
     setSelectedDays(preset);
+  };
+
+  const handleGetCurrentLocation = () => {
+    if (!navigator.geolocation) {
+      toast.error("Browser ini tidak mendukung pengambilan lokasi.");
+      return;
+    }
+
+    setLocating(true);
+    navigator.geolocation.getCurrentPosition(
+      (position) => {
+        setLatitudeValue(position.coords.latitude.toFixed(8));
+        setLongitudeValue(position.coords.longitude.toFixed(8));
+        toast.success("Lokasi berhasil diambil dari browser. Klik Simpan Preferensi untuk menyimpannya.");
+        setLocating(false);
+      },
+      (error) => {
+        const messageByCode: Record<number, string> = {
+          1: "Izin lokasi ditolak. Izinkan akses lokasi untuk localhost.",
+          2: "Lokasi tidak tersedia. Pastikan GPS atau layanan lokasi aktif.",
+          3: "Pengambilan lokasi timeout. Coba lagi.",
+        };
+        toast.error(messageByCode[error.code] || "Gagal mengambil lokasi.");
+        setLocating(false);
+      },
+      {
+        enableHighAccuracy: true,
+        timeout: 15000,
+        maximumAge: 0,
+      }
+    );
   };
 
   const handleToggle = async () => {
@@ -193,6 +235,56 @@ export function AutomationConfigCard({
       {/* Preferences Form */}
       <form onSubmit={handleSavePreferences} className="pt-2 border-t border-hairline space-y-5">
         <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
+          {/* Lokasi Penempatan */}
+          <div className="space-y-1.5 md:col-span-2">
+            <label className="text-xs font-medium text-ink-secondary flex items-center gap-1.5">
+              <MapPin className="w-3.5 h-3.5 text-primary" />
+              Koordinat Lokasi Penempatan
+            </label>
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+              <input
+                name="latitude"
+                type="number"
+                step="any"
+                min="-90"
+                max="90"
+                value={latitudeValue}
+                onChange={(event) => setLatitudeValue(event.target.value)}
+                placeholder="Latitude, contoh: -6.229179"
+                required
+                className="w-full bg-canvas-deep border border-hairline rounded-sm px-3 py-2 text-xs text-ink-primary focus:outline-none focus:border-primary"
+              />
+              <input
+                name="longitude"
+                type="number"
+                step="any"
+                min="-180"
+                max="180"
+                value={longitudeValue}
+                onChange={(event) => setLongitudeValue(event.target.value)}
+                placeholder="Longitude, contoh: 106.833753"
+                required
+                className="w-full bg-canvas-deep border border-hairline rounded-sm px-3 py-2 text-xs text-ink-primary focus:outline-none focus:border-primary"
+              />
+            </div>
+            <div className="flex flex-col sm:flex-row sm:items-center gap-2">
+              <Button
+                type="button"
+                variant="outline"
+                size="sm"
+                onClick={handleGetCurrentLocation}
+                disabled={locating || saving}
+                className="h-8 text-xs gap-1.5 self-start"
+              >
+                <MapPin className={`w-3.5 h-3.5 ${locating ? "animate-pulse" : ""}`} />
+                {locating ? "Mengambil Lokasi..." : "Ambil Lokasi Saya"}
+              </Button>
+              <p className="text-[11px] text-ink-muted">
+                Izinkan akses lokasi browser. Koordinat dikirim bersama presensi manual dan automasi.
+              </p>
+            </div>
+          </div>
+
           {/* Target Waktu */}
           <div className="space-y-1.5">
             <label className="text-xs font-medium text-ink-secondary flex items-center gap-1.5">

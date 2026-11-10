@@ -10,6 +10,8 @@ describe("MagangHub API Client", () => {
   it("should handle error gracefully on bad submit token", async () => {
     const result = await MagangHubApiClient.submitDailyLog("invalid_token", {
       date: "2026-09-20",
+      latitude: -6.229179,
+      longitude: 106.833753,
       status: "PRESENT",
       activity_log: "Pengerjaan sistem informasi dan pengujian fungsi aplikasi.",
       lesson_learned: "Mempelajari integrasi protokol komunikasi HTTP direct API.",

@@ -93,6 +93,8 @@ export default async function SettingsPage() {
           webhookKey={activeAutomation.webhookKey}
           scheduleTime={activeAutomation.scheduleTime}
           scheduleDays={activeAutomation.scheduleDays || "1,2,3,4,5,6"}
+          latitude={activeAutomation.latitude}
+          longitude={activeAutomation.longitude}
         />
       </div>
     </div>

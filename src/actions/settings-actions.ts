@@ -16,7 +16,44 @@ import {
 import {
   updateAutomationPreferencesSchema,
   toggleAutomationSchema,
+  locationSchema,
 } from "@/schemas/automation-schema";
+
+export async function saveLocationCoordinates(
+  latitude: number,
+  longitude: number
+): Promise<{ readonly success?: boolean; readonly error?: string }> {
+  const session = await auth();
+  if (!session?.user?.id) return { error: "Unauthorized" };
+
+  const parsed = locationSchema.safeParse({ latitude, longitude });
+  if (!parsed.success) {
+    return { error: parsed.error.issues[0]?.message || "Koordinat lokasi tidak valid" };
+  }
+
+  try {
+    await db.automationConfig.upsert({
+      where: { userId: session.user.id },
+      create: {
+        userId: session.user.id,
+        latitude: parsed.data.latitude,
+        longitude: parsed.data.longitude,
+        webhookKey: crypto.randomBytes(24).toString("hex"),
+      },
+      update: {
+        latitude: parsed.data.latitude,
+        longitude: parsed.data.longitude,
+      },
+    });
+
+    revalidatePath("/settings");
+    revalidatePath("/reports");
+    return { success: true };
+  } catch (err) {
+    console.error("Save location error:", err);
+    return { error: "Gagal menyimpan koordinat lokasi." };
+  }
+}
 
 export async function saveMaganghubCredential(
   formData: FormData
@@ -240,6 +277,8 @@ export async function updateAutomationPreferences(
   const raw = {
     scheduleTime: formData.get("scheduleTime"),
     scheduleDays: formData.get("scheduleDays"),
+    latitude: formData.get("latitude"),
+    longitude: formData.get("longitude"),
   };
 
   const parsed = updateAutomationPreferencesSchema.safeParse(raw);
@@ -247,7 +286,7 @@ export async function updateAutomationPreferences(
     return { error: parsed.error.issues[0]?.message || "Format data tidak valid" };
   }
 
-  const { scheduleTime, scheduleDays } = parsed.data;
+  const { scheduleTime, scheduleDays, latitude, longitude } = parsed.data;
 
   try {
     await db.automationConfig.upsert({
@@ -256,11 +295,15 @@ export async function updateAutomationPreferences(
         userId: session.user.id,
         scheduleTime,
         scheduleDays,
+        latitude,
+        longitude,
         webhookKey: crypto.randomBytes(24).toString("hex"),
       },
       update: {
         scheduleTime,
         scheduleDays,
+        latitude,
+        longitude,
       },
     });
 

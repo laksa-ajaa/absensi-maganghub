@@ -139,6 +139,8 @@ model AutomationConfig {
   scheduleTime String      @default("13:50") // Preferensi jam submit
   scheduleDays String      @default("1,2,3,4,5,6") // Hari submit (0=Minggu, 1=Senin, ..., 6=Sabtu)
   timezone     String      @default("Asia/Jakarta")
+  latitude     Float?
+  longitude    Float?
   createdAt    DateTime    @default(now())
   updatedAt    DateTime    @updatedAt
 

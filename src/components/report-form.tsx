@@ -8,14 +8,17 @@ import { Textarea } from "@/components/ui/textarea";
 import { Input } from "@/components/ui/input";
 import { ConfirmDialog } from "@/components/ui/confirm-dialog";
 import { generateReportDraft, saveReportDraft } from "@/actions/report-actions";
+import { saveLocationCoordinates } from "@/actions/settings-actions";
 import type { ReportItem } from "@/schemas/report-schema";
-import { Sparkles, Save, CheckCircle2, AlertTriangle, Loader2, Lock } from "lucide-react";
+import { Sparkles, Save, CheckCircle2, AlertTriangle, Loader2, Lock, MapPin } from "lucide-react";
 
 export type ReportFormData = Partial<ReportItem>;
 
 interface ReportFormProps {
   initialReport?: ReportFormData | null;
   selectedDate: string;
+  initialLatitude?: number | null;
+  initialLongitude?: number | null;
   onDateChange?: (date: string) => void;
   aiConfig?: {
     isReady: boolean;
@@ -27,6 +30,8 @@ interface ReportFormProps {
 export function ReportForm({
   initialReport,
   selectedDate,
+  initialLatitude,
+  initialLongitude,
   onDateChange,
   aiConfig,
 }: ReportFormProps) {
@@ -40,6 +45,14 @@ export function ReportForm({
   const [generating, setGenerating] = useState(false);
   const [saving, setSaving] = useState(false);
   const [showNoCommitDialog, setShowNoCommitDialog] = useState(false);
+  const [latitude, setLatitude] = useState(
+    initialLatitude == null ? "" : String(initialLatitude)
+  );
+  const [longitude, setLongitude] = useState(
+    initialLongitude == null ? "" : String(initialLongitude)
+  );
+  const [locating, setLocating] = useState(false);
+  const [savingLocation, setSavingLocation] = useState(false);
 
   const handleDateSelect = (newDate: string) => {
     setDate(newDate);
@@ -47,6 +60,51 @@ export function ReportForm({
     startTransition(() => {
       router.push(`/reports?date=${newDate}`);
     });
+  };
+
+  const handleGetLocation = () => {
+    if (!navigator.geolocation) {
+      toast.error("Browser tidak mendukung pengambilan lokasi.");
+      return;
+    }
+
+    setLocating(true);
+    navigator.geolocation.getCurrentPosition(
+      (position) => {
+        setLatitude(position.coords.latitude.toFixed(8));
+        setLongitude(position.coords.longitude.toFixed(8));
+        toast.success("Lokasi berhasil diambil. Klik Simpan Lokasi.");
+        setLocating(false);
+      },
+      (error) => {
+        const messages: Record<number, string> = {
+          1: "Izin lokasi ditolak. Izinkan lokasi untuk localhost.",
+          2: "Lokasi tidak tersedia. Aktifkan layanan lokasi perangkat.",
+          3: "Pengambilan lokasi timeout. Coba lagi.",
+        };
+        toast.error(messages[error.code] || "Gagal mengambil lokasi.");
+        setLocating(false);
+      },
+      { enableHighAccuracy: true, timeout: 15000, maximumAge: 0 }
+    );
+  };
+
+  const handleSaveLocation = async () => {
+    const latitudeNumber = Number(latitude);
+    const longitudeNumber = Number(longitude);
+    if (!Number.isFinite(latitudeNumber) || !Number.isFinite(longitudeNumber)) {
+      toast.error("Isi latitude dan longitude terlebih dahulu.");
+      return;
+    }
+
+    setSavingLocation(true);
+    const result = await saveLocationCoordinates(latitudeNumber, longitudeNumber);
+    if (result.success) {
+      toast.success("Koordinat lokasi berhasil disimpan.");
+    } else {
+      toast.error(result.error || "Gagal menyimpan koordinat lokasi.");
+    }
+    setSavingLocation(false);
   };
 
   const handleGenerateAI = async (fallbackToPrevious = false) => {
@@ -196,6 +254,61 @@ export function ReportForm({
           </span>
         </div>
       )}
+
+      <div className="p-3.5 sm:p-4 rounded-sm bg-canvas border border-hairline space-y-3">
+        <div className="flex items-center gap-2">
+          <MapPin className="w-4 h-4 text-primary" />
+          <div>
+            <h3 className="text-xs font-semibold text-ink-primary">Lokasi Presensi</h3>
+            <p className="text-[11px] text-ink-muted">Koordinat ini dikirim bersama presensi MagangHub.</p>
+          </div>
+        </div>
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+          <input
+            type="number"
+            step="any"
+            min="-90"
+            max="90"
+            value={latitude}
+            onChange={(event) => setLatitude(event.target.value)}
+            placeholder="Latitude, contoh: -6.229179"
+            className="w-full bg-canvas-deep border border-hairline rounded-sm px-3 py-2 text-xs text-ink-primary focus:outline-none focus:border-primary"
+          />
+          <input
+            type="number"
+            step="any"
+            min="-180"
+            max="180"
+            value={longitude}
+            onChange={(event) => setLongitude(event.target.value)}
+            placeholder="Longitude, contoh: 106.833753"
+            className="w-full bg-canvas-deep border border-hairline rounded-sm px-3 py-2 text-xs text-ink-primary focus:outline-none focus:border-primary"
+          />
+        </div>
+        <div className="flex flex-wrap items-center gap-2">
+          <Button
+            type="button"
+            variant="outline"
+            size="sm"
+            onClick={handleGetLocation}
+            disabled={locating || savingLocation}
+            className="h-8 text-xs gap-1.5"
+          >
+            <MapPin className={`w-3.5 h-3.5 ${locating ? "animate-pulse" : ""}`} />
+            {locating ? "Mengambil Lokasi..." : "Ambil Lokasi Saya"}
+          </Button>
+          <Button
+            type="button"
+            variant="secondary"
+            size="sm"
+            onClick={handleSaveLocation}
+            disabled={locating || savingLocation || !latitude || !longitude}
+            className="h-8 text-xs"
+          >
+            {savingLocation ? "Menyimpan..." : "Simpan Lokasi"}
+          </Button>
+        </div>
+      </div>
 
       <form onSubmit={handleSave} className="space-y-4 sm:space-y-5">
         {/* Section 1: Uraian Aktivitas */}

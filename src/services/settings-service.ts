@@ -53,6 +53,8 @@ export async function updateAutomationConfig(
     scheduleDays?: string;
     autoGenerate?: boolean;
     webhookKey?: string;
+    latitude?: number;
+    longitude?: number;
   }
 ) {
   return db.automationConfig.upsert({
@@ -65,6 +67,8 @@ export async function updateAutomationConfig(
       scheduleDays: data.scheduleDays ?? "1,2,3,4,5,6",
       autoGenerate: data.autoGenerate ?? true,
       webhookKey: data.webhookKey,
+      latitude: data.latitude,
+      longitude: data.longitude,
     },
   });
 }

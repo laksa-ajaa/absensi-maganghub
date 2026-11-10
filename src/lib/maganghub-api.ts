@@ -1,4 +1,5 @@
 import axios from "axios";
+import https from "node:https";
 import { HttpsProxyAgent } from "https-proxy-agent";
 
 export interface MonevAuthToken {
@@ -8,6 +9,8 @@ export interface MonevAuthToken {
 
 export interface SubmitPayload {
   date: string; // YYYY-MM-DD
+  latitude: number;
+  longitude: number;
   status?: "PRESENT" | "SICK" | "LEAVE";
   activity_log: string;
   lesson_learned: string;
@@ -104,7 +107,13 @@ function getHttpClient() {
       proxy: false,
     });
   }
-  return axios.create();
+
+  // WSL/Ubuntu environments may have an IPv6 route in DNS but no usable
+  // IPv6 network route. Force direct Kemnaker requests over IPv4 so Node does
+  // not spend the timeout trying unreachable IPv6 addresses first.
+  return axios.create({
+    httpsAgent: new https.Agent({ family: 4, keepAlive: true }),
+  });
 }
 
 export class MagangHubApiClient {
@@ -362,6 +371,8 @@ export class MagangHubApiClient {
     try {
       const body = {
         date: payload.date,
+        latitude: payload.latitude,
+        longitude: payload.longitude,
         status: payload.status || "PRESENT",
         activity_log: payload.activity_log,
         lesson_learned: payload.lesson_learned,

@@ -1,5 +1,6 @@
 import { auth } from "@/lib/auth";
 import { getReportByDate, getRecentReports } from "@/services/report-service";
+import { getUserAutomationConfig } from "@/services/settings-service";
 import { getUserAiConfig } from "@/services/ai-config-service";
 import { redirect } from "next/navigation";
 import Link from "next/link";
@@ -23,10 +24,11 @@ export default async function ReportsPage({ searchParams }: ReportsPageProps) {
   const targetDateStr = resolvedParams.date || getTodayJakartaStr();
 
   // Fetch report for target date, recent reports (limit 5), and user AI config in parallel
-  const [targetReport, recentReports, userAi] = await Promise.all([
+  const [targetReport, recentReports, userAi, automation] = await Promise.all([
     getReportByDate(userId, targetDateStr),
     getRecentReports(userId, 5),
     getUserAiConfig(userId),
+    getUserAutomationConfig(userId),
   ]);
 
   const getStatusBadge = (status: string) => {
@@ -93,6 +95,8 @@ export default async function ReportsPage({ searchParams }: ReportsPageProps) {
           modelName: userAi?.modelName,
           provider: userAi?.provider,
         }}
+        initialLatitude={automation?.latitude}
+        initialLongitude={automation?.longitude}
       />
 
       {/* History Preview Card */}
