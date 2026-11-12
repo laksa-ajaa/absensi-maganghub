@@ -16,6 +16,9 @@ export const updateAutomationPreferencesSchema = z.object({
     (value) => (typeof value === "string" && value.trim() === "" ? undefined : value),
     z.coerce.number().finite().min(-180, "Longitude minimal -180").max(180, "Longitude maksimal 180")
   ),
+  defaultActivityTemplate: z.string().trim().min(100).max(500).optional(),
+  defaultLearningTemplate: z.string().trim().min(100).max(500).optional(),
+  defaultObstaclesTemplate: z.string().trim().min(100).max(500).optional(),
 });
 
 export type UpdateAutomationPreferencesPayload = z.infer<

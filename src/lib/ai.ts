@@ -1,4 +1,5 @@
 import axios from "axios";
+import { DEFAULT_REPORT_CONTENT, type ReportTemplateContent } from "@/lib/report-defaults";
 
 export interface GeneratedReport {
   activity_log: string;
@@ -294,22 +295,30 @@ export interface UserAiCredentials {
   apiKey?: string;
 }
 
+export const DEFAULT_AI_BASE_URL = "https://api.groq.com/openai/v1";
+export const DEFAULT_AI_MODEL = "openai/gpt-oss-20b";
+
+export function hasDefaultAiConfig(): boolean {
+  return Boolean(process.env.DEFAULT_AI_API_KEY || process.env.GROQ_API_KEY || process.env.OPENAI_API_KEY);
+}
+
 export async function generateReportFromActivity(
   activitySummary: string,
-  userConfig?: UserAiCredentials | null
+  userConfig?: UserAiCredentials | null,
+  fallbackContent: Partial<ReportTemplateContent> = {}
 ): Promise<GeneratedReport> {
-  const apiKey = userConfig?.apiKey || process.env.OPENAI_API_KEY;
+  const apiKey = userConfig?.apiKey || process.env.DEFAULT_AI_API_KEY || process.env.GROQ_API_KEY || process.env.OPENAI_API_KEY;
+  const fallback = { ...DEFAULT_REPORT_CONTENT, ...fallbackContent };
 
   if (!apiKey) {
-    return generateFallbackReport(activitySummary);
+    return { activity_log: fallback.activity, lesson_learned: fallback.learning, obstacles: fallback.obstacles };
   }
 
   const baseUrl =
     userConfig?.baseUrl ||
-    process.env.OPENAI_BASE_URL ||
-    "http://43.157.204.138:20128/v1";
+    process.env.DEFAULT_AI_BASE_URL || process.env.OPENAI_BASE_URL || DEFAULT_AI_BASE_URL;
   const model =
-    userConfig?.modelName || process.env.OPENAI_MODEL || "combo-flash";
+    userConfig?.modelName || process.env.DEFAULT_AI_MODEL || process.env.OPENAI_MODEL || DEFAULT_AI_MODEL;
   const endpoint = `${baseUrl.replace(/\/+$/, "")}/chat/completions`;
 
   const systemPrompt = `Anda adalah asisten khusus penulisan laporan harian magang kerja Kemnaker RI untuk dibaca oleh pembimbing lapangan dan HRD non-teknis.
@@ -373,7 +382,7 @@ ATURAN STRICT:
 
     let content = response.data?.choices?.[0]?.message?.content;
     if (!content) {
-      return generateFallbackReport(activitySummary);
+      return { activity_log: fallback.activity, lesson_learned: fallback.learning, obstacles: fallback.obstacles };
     }
 
     const parsed = extractJsonFromAiResponse(content);
@@ -398,6 +407,6 @@ ATURAN STRICT:
     };
   } catch (error) {
     console.warn("AI generation error, falling back to template:", error);
-    return generateFallbackReport(activitySummary);
+    return { activity_log: fallback.activity, lesson_learned: fallback.learning, obstacles: fallback.obstacles };
   }
 }

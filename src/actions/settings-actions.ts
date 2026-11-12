@@ -18,6 +18,7 @@ import {
   toggleAutomationSchema,
   locationSchema,
 } from "@/schemas/automation-schema";
+import { DEFAULT_REPORT_CONTENT } from "@/lib/report-defaults";
 
 export async function saveLocationCoordinates(
   latitude: number,
@@ -279,6 +280,9 @@ export async function updateAutomationPreferences(
     scheduleDays: formData.get("scheduleDays"),
     latitude: formData.get("latitude"),
     longitude: formData.get("longitude"),
+    defaultActivityTemplate: formData.get("defaultActivityTemplate"),
+    defaultLearningTemplate: formData.get("defaultLearningTemplate"),
+    defaultObstaclesTemplate: formData.get("defaultObstaclesTemplate"),
   };
 
   const parsed = updateAutomationPreferencesSchema.safeParse(raw);
@@ -287,6 +291,9 @@ export async function updateAutomationPreferences(
   }
 
   const { scheduleTime, scheduleDays, latitude, longitude } = parsed.data;
+  const defaultActivityTemplate = parsed.data.defaultActivityTemplate || DEFAULT_REPORT_CONTENT.activity;
+  const defaultLearningTemplate = parsed.data.defaultLearningTemplate || DEFAULT_REPORT_CONTENT.learning;
+  const defaultObstaclesTemplate = parsed.data.defaultObstaclesTemplate || DEFAULT_REPORT_CONTENT.obstacles;
 
   try {
     await db.automationConfig.upsert({
@@ -297,6 +304,9 @@ export async function updateAutomationPreferences(
         scheduleDays,
         latitude,
         longitude,
+        defaultActivityTemplate,
+        defaultLearningTemplate,
+        defaultObstaclesTemplate,
         webhookKey: crypto.randomBytes(24).toString("hex"),
       },
       update: {
@@ -304,10 +314,14 @@ export async function updateAutomationPreferences(
         scheduleDays,
         latitude,
         longitude,
+        defaultActivityTemplate,
+        defaultLearningTemplate,
+        defaultObstaclesTemplate,
       },
     });
 
     revalidatePath("/settings");
+    revalidatePath("/reports");
     return { success: true };
   } catch (err) {
     console.error("Update preferences error:", err);

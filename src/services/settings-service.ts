@@ -55,6 +55,9 @@ export async function updateAutomationConfig(
     webhookKey?: string;
     latitude?: number;
     longitude?: number;
+    defaultActivityTemplate?: string;
+    defaultLearningTemplate?: string;
+    defaultObstaclesTemplate?: string;
   }
 ) {
   return db.automationConfig.upsert({
@@ -69,6 +72,9 @@ export async function updateAutomationConfig(
       webhookKey: data.webhookKey,
       latitude: data.latitude,
       longitude: data.longitude,
+      defaultActivityTemplate: data.defaultActivityTemplate,
+      defaultLearningTemplate: data.defaultLearningTemplate,
+      defaultObstaclesTemplate: data.defaultObstaclesTemplate,
     },
   });
 }

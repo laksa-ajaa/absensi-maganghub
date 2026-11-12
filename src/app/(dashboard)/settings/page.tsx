@@ -13,6 +13,8 @@ import { GithubRepoCard } from "@/components/github-repo-card";
 import { AutomationConfigCard } from "@/components/automation-config-card";
 import { AiConfigCard } from "@/components/ai-config-card";
 import crypto from "node:crypto";
+import { db } from "@/lib/db";
+import { hasDefaultAiConfig } from "@/lib/ai";
 
 export default async function SettingsPage() {
   const session = await auth();
@@ -21,6 +23,16 @@ export default async function SettingsPage() {
   }
 
   const userId = session.user.id;
+
+  // JWT lama bisa tetap tersimpan setelah DATABASE_URL production diganti.
+  // Pastikan user dari session masih ada di database sebelum membuat relasi.
+  const currentUser = await db.user.findUnique({
+    where: { id: userId },
+    select: { id: true },
+  });
+  if (!currentUser) {
+    redirect("/login?error=SESSION_EXPIRED");
+  }
 
   // Fetch credential, repos, automation config, AI config, and GitHub account in parallel via service layer
   const [credential, repos, automation, aiConfig, githubAccount] = await Promise.all([
@@ -70,6 +82,7 @@ export default async function SettingsPage() {
       <div className="space-y-6">
         <AiConfigCard
           hasConfig={!!aiConfig}
+          hasDefaultAi={hasDefaultAiConfig()}
           provider={aiConfig?.provider}
           baseUrl={aiConfig?.baseUrl}
           modelName={aiConfig?.modelName}
@@ -95,6 +108,9 @@ export default async function SettingsPage() {
           scheduleDays={activeAutomation.scheduleDays || "1,2,3,4,5,6"}
           latitude={activeAutomation.latitude}
           longitude={activeAutomation.longitude}
+          defaultActivityTemplate={activeAutomation.defaultActivityTemplate}
+          defaultLearningTemplate={activeAutomation.defaultLearningTemplate}
+          defaultObstaclesTemplate={activeAutomation.defaultObstaclesTemplate}
         />
       </div>
     </div>

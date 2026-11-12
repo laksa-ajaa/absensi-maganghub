@@ -6,6 +6,7 @@ import { Button } from "@/components/ui/button";
 import { WebhookCurlBox } from "@/components/webhook-curl-box";
 import { toggleAutomation, updateAutomationPreferences } from "@/actions/settings-actions";
 import { Cpu, Clock, Calendar, MapPin } from "lucide-react";
+import { DEFAULT_REPORT_CONTENT } from "@/lib/report-defaults";
 
 interface AutomationConfigCardProps {
   isEnabled: boolean;
@@ -14,6 +15,9 @@ interface AutomationConfigCardProps {
   scheduleDays?: string;
   latitude?: number | null;
   longitude?: number | null;
+  defaultActivityTemplate?: string | null;
+  defaultLearningTemplate?: string | null;
+  defaultObstaclesTemplate?: string | null;
 }
 
 const DAYS_OF_WEEK = [
@@ -41,6 +45,9 @@ export function AutomationConfigCard({
   scheduleDays = "1,2,3,4,5,6",
   latitude,
   longitude,
+  defaultActivityTemplate,
+  defaultLearningTemplate,
+  defaultObstaclesTemplate,
 }: AutomationConfigCardProps) {
   const [isEnabled, setIsEnabled] = useState(initialEnabled);
   const [toggling, setToggling] = useState(false);
@@ -234,6 +241,17 @@ export function AutomationConfigCard({
 
       {/* Preferences Form */}
       <form onSubmit={handleSavePreferences} className="pt-2 border-t border-hairline space-y-5">
+        <div className="space-y-3">
+          <div>
+            <h3 className="text-xs font-semibold text-ink-primary">Template Otomatis Laporan</h3>
+            <p className="text-[11px] text-ink-muted mt-1">Dipakai cron sebagai fallback jika AI gagal atau isian laporan masih kosong. Minimal 100 karakter per bagian.</p>
+          </div>
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+            <label className="text-[11px] text-ink-secondary">Aktivitas<textarea name="defaultActivityTemplate" defaultValue={defaultActivityTemplate || DEFAULT_REPORT_CONTENT.activity} rows={5} className="mt-1 w-full bg-canvas-deep border border-hairline rounded-sm px-3 py-2 text-xs text-ink-primary focus:outline-none focus:border-primary" /></label>
+            <label className="text-[11px] text-ink-secondary">Pembelajaran<textarea name="defaultLearningTemplate" defaultValue={defaultLearningTemplate || DEFAULT_REPORT_CONTENT.learning} rows={5} className="mt-1 w-full bg-canvas-deep border border-hairline rounded-sm px-3 py-2 text-xs text-ink-primary focus:outline-none focus:border-primary" /></label>
+            <label className="text-[11px] text-ink-secondary">Kendala<textarea name="defaultObstaclesTemplate" defaultValue={defaultObstaclesTemplate || DEFAULT_REPORT_CONTENT.obstacles} rows={5} className="mt-1 w-full bg-canvas-deep border border-hairline rounded-sm px-3 py-2 text-xs text-ink-primary focus:outline-none focus:border-primary" /></label>
+          </div>
+        </div>
         <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
           {/* Lokasi Penempatan */}
           <div className="space-y-1.5 md:col-span-2">

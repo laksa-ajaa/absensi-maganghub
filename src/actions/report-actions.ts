@@ -18,7 +18,7 @@ import type { ApiResponse } from "@/types/api";
 
 export async function generateReportDraft(
   dateStr: string,
-  options?: { fallbackToPrevious?: boolean }
+  options?: { fallbackToPrevious?: boolean; mode?: "DESCRIPTION" | "REPOSITORY"; description?: string }
 ): Promise<ApiResponse<ReportItem>> {
   const session = await auth();
   if (!session?.user?.id) {
@@ -31,6 +31,8 @@ export async function generateReportDraft(
   const parsed = generateReportSchema.safeParse({
     date: dateStr,
     fallbackToPrevious: options?.fallbackToPrevious,
+    mode: options?.mode,
+    description: options?.description,
   });
   if (!parsed.success) {
     return {
@@ -46,6 +48,10 @@ export async function generateReportDraft(
   const targetDate = parsed.data.date || dateStr;
   const dateObj = new Date(targetDate);
   const fallbackToPrevious = !!parsed.data.fallbackToPrevious;
+  const mode = parsed.data.mode;
+  if (mode === "DESCRIPTION" && !parsed.data.description) {
+    return { success: false, error: { code: "VALIDATION_ERROR", message: "Isi deskripsi pekerjaan terlebih dahulu." } };
+  }
 
   try {
     const existingReport = await db.report.findUnique({
@@ -67,14 +73,20 @@ export async function generateReportDraft(
       };
     }
 
-    const trackedReposCount = await db.githubRepo.count({
-      where: { userId, isActive: true },
-    });
+    const automation = await db.automationConfig.findUnique({ where: { userId } });
+    const templates = {
+      activity: automation?.defaultActivityTemplate || undefined,
+      learning: automation?.defaultLearningTemplate || undefined,
+      obstacles: automation?.defaultObstaclesTemplate || undefined,
+    };
+    let groups: Awaited<ReturnType<typeof fetchAllTrackedCommitsForUser>> = [];
+    let totalCommits = 0;
+    if (mode === "REPOSITORY") {
+      const trackedReposCount = await db.githubRepo.count({ where: { userId, isActive: true } });
+      groups = await fetchAllTrackedCommitsForUser(userId, targetDate);
+      totalCommits = groups.reduce((acc, g) => acc + g.commits.length, 0);
 
-    let groups = await fetchAllTrackedCommitsForUser(userId, targetDate);
-    const totalCommits = groups.reduce((acc, g) => acc + g.commits.length, 0);
-
-    if (trackedReposCount > 0 && totalCommits === 0 && !fallbackToPrevious) {
+      if (trackedReposCount > 0 && totalCommits === 0 && !fallbackToPrevious) {
       return {
         success: false,
         error: {
@@ -84,15 +96,14 @@ export async function generateReportDraft(
       };
     }
 
-    if (trackedReposCount > 0 && totalCommits === 0 && fallbackToPrevious) {
-      groups = await fetchAllTrackedCommitsForUser(userId, targetDate, {
-        fallbackToPrevious: true,
-      });
+      if (trackedReposCount > 0 && totalCommits === 0 && fallbackToPrevious) {
+        groups = await fetchAllTrackedCommitsForUser(userId, targetDate, { fallbackToPrevious: true });
+      }
     }
 
-    const summary = formatCommitsToActivitySummary(groups);
+    const summary = mode === "DESCRIPTION" ? parsed.data.description! : formatCommitsToActivitySummary(groups);
     const userAiConfig = await getDecryptedUserAiConfig(userId);
-    const generated = await generateReportFromActivity(summary, userAiConfig);
+    const generated = await generateReportFromActivity(summary, userAiConfig, templates);
 
     const report = await db.report.upsert({
       where: {
@@ -107,16 +118,16 @@ export async function generateReportDraft(
         activity: generated.activity_log,
         learning: generated.lesson_learned,
         obstacles: generated.obstacles,
-        sourceType: "GITHUB",
-        sourceData: groups as unknown as object,
+        sourceType: mode === "DESCRIPTION" ? "MANUAL" : "GITHUB",
+        sourceData: mode === "DESCRIPTION" ? { mode, description: parsed.data.description } : groups as unknown as object,
         status: "DRAFT",
       },
       update: {
         activity: generated.activity_log,
         learning: generated.lesson_learned,
         obstacles: generated.obstacles,
-        sourceType: "GITHUB",
-        sourceData: groups as unknown as object,
+        sourceType: mode === "DESCRIPTION" ? "MANUAL" : "GITHUB",
+        sourceData: mode === "DESCRIPTION" ? { mode, description: parsed.data.description } : groups as unknown as object,
       },
     });
 

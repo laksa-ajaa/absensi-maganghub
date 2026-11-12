@@ -141,6 +141,9 @@ model AutomationConfig {
   timezone     String      @default("Asia/Jakarta")
   latitude     Float?
   longitude    Float?
+  defaultActivityTemplate  String? @db.Text
+  defaultLearningTemplate  String? @db.Text
+  defaultObstaclesTemplate String? @db.Text
   createdAt    DateTime    @default(now())
   updatedAt    DateTime    @updatedAt
 

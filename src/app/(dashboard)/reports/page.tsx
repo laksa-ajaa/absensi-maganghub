@@ -8,6 +8,7 @@ import { ReportForm } from "@/components/report-form";
 import { Button } from "@/components/ui/button";
 import { getTodayJakartaStr } from "@/lib/date-utils";
 import { CheckCircle2, Clock, AlertCircle, History, ArrowRight } from "lucide-react";
+import { DEFAULT_AI_MODEL, hasDefaultAiConfig } from "@/lib/ai";
 
 interface ReportsPageProps {
   searchParams: Promise<{ date?: string }>;
@@ -91,8 +92,8 @@ export default async function ReportsPage({ searchParams }: ReportsPageProps) {
         }
         selectedDate={targetDateStr}
         aiConfig={{
-          isReady: !!userAi,
-          modelName: userAi?.modelName,
+          isReady: !!userAi || hasDefaultAiConfig(),
+          modelName: userAi?.modelName || DEFAULT_AI_MODEL,
           provider: userAi?.provider,
         }}
         initialLatitude={automation?.latitude}

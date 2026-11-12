@@ -26,6 +26,7 @@ import {
 
 interface AiConfigCardProps {
   hasConfig: boolean;
+  hasDefaultAi?: boolean;
   provider?: string;
   baseUrl?: string;
   modelName?: string;
@@ -36,7 +37,7 @@ const PRESETS = [
     name: "Groq (Gratis / Rekomendasi)",
     provider: "groq",
     baseUrl: "https://api.groq.com/openai/v1",
-    modelName: "llama-3.3-70b-versatile",
+    modelName: "openai/gpt-oss-20b",
   },
   {
     name: "OpenRouter",
@@ -60,9 +61,10 @@ const PRESETS = [
 
 export function AiConfigCard({
   hasConfig,
+  hasDefaultAi = false,
   provider = "openai_compatible",
   baseUrl = "https://api.groq.com/openai/v1",
-  modelName = "llama-3.3-70b-versatile",
+  modelName = "openai/gpt-oss-20b",
 }: AiConfigCardProps) {
   const [isEditing, setIsEditing] = useState(!hasConfig);
   const [showApiKey, setShowApiKey] = useState(false);
@@ -161,7 +163,7 @@ export function AiConfigCard({
             ) : (
               <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-medium bg-surface text-ink-secondary border border-hairline">
                 <Sparkles className="w-3.5 h-3.5 text-warning" />
-                Fallback Generator (0 Token)
+                {hasDefaultAi ? "AI Bawaan Aktif" : "Fallback Generator (0 Token)"}
               </span>
             )}
           </div>

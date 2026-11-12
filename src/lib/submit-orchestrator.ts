@@ -7,6 +7,7 @@ import { generateReportFromActivity } from "@/lib/ai";
 import { getDecryptedUserAiConfig } from "@/services/ai-config-service";
 import { getTodayJakartaStr } from "@/lib/date-utils";
 import { TriggerType } from "@prisma/client";
+import { applyDefaultReportContent } from "@/lib/report-defaults";
 
 export interface SubmitOrchestratorResult {
   success: boolean;
@@ -37,7 +38,7 @@ export async function executeUserDailySubmit(
 
   const automationConfig = await db.automationConfig.findUnique({
     where: { userId },
-    select: { latitude: true, longitude: true },
+    select: { latitude: true, longitude: true, defaultActivityTemplate: true, defaultLearningTemplate: true, defaultObstaclesTemplate: true },
   });
 
   if (automationConfig?.latitude == null || automationConfig.longitude == null) {
@@ -85,7 +86,11 @@ export async function executeUserDailySubmit(
       }
       const summary = formatCommitsToActivitySummary(groups);
       const userAiConfig = await getDecryptedUserAiConfig(userId);
-      const generated = await generateReportFromActivity(summary, userAiConfig);
+      const generated = await generateReportFromActivity(summary, userAiConfig, {
+        activity: automationConfig.defaultActivityTemplate || undefined,
+        learning: automationConfig.defaultLearningTemplate || undefined,
+        obstacles: automationConfig.defaultObstaclesTemplate || undefined,
+      });
 
       report = await db.report.create({
         data: {
@@ -116,6 +121,29 @@ export async function executeUserDailySubmit(
       message: `Laporan untuk tanggal ${dateStr} sudah pernah disubmit ke Monev MagangHub sebelumnya.`,
       reportId: report.id,
     };
+  }
+
+  // Cron tetap dapat mengirim laporan jika draft belum diisi manual.
+  // Field yang sudah diisi pengguna tidak ditimpa.
+  const reportContent = applyDefaultReportContent({
+    activity: report.activity,
+    learning: report.learning,
+    obstacles: report.obstacles,
+  }, {
+    activity: automationConfig.defaultActivityTemplate || undefined,
+    learning: automationConfig.defaultLearningTemplate || undefined,
+    obstacles: automationConfig.defaultObstaclesTemplate || undefined,
+  });
+
+  if (
+    reportContent.activity !== report.activity ||
+    reportContent.learning !== report.learning ||
+    reportContent.obstacles !== report.obstacles
+  ) {
+    report = await db.report.update({
+      where: { id: report.id },
+      data: reportContent,
+    });
   }
 
   // 7. Login ke Monev SSO Kemnaker
@@ -169,9 +197,9 @@ export async function executeUserDailySubmit(
     latitude: automationConfig.latitude,
     longitude: automationConfig.longitude,
     status: "PRESENT",
-    activity_log: report.activity,
-    lesson_learned: report.learning,
-    obstacles: report.obstacles,
+    activity_log: reportContent.activity,
+    lesson_learned: reportContent.learning,
+    obstacles: reportContent.obstacles,
   });
 
   // 9. Catat log dan update status laporan

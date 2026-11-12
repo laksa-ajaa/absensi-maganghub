@@ -53,6 +53,9 @@ export function ReportForm({
   );
   const [locating, setLocating] = useState(false);
   const [savingLocation, setSavingLocation] = useState(false);
+  const [generateMode, setGenerateMode] = useState<"DESCRIPTION" | "REPOSITORY">("DESCRIPTION");
+  const [workDescription, setWorkDescription] = useState("");
+  const [showGenerateOptions, setShowGenerateOptions] = useState(false);
 
   const handleDateSelect = (newDate: string) => {
     setDate(newDate);
@@ -115,7 +118,7 @@ export function ReportForm({
 
     setGenerating(true);
 
-    const res = await generateReportDraft(date, { fallbackToPrevious });
+    const res = await generateReportDraft(date, { fallbackToPrevious, mode: generateMode, description: workDescription });
     if (!res.success) {
       if (res.error?.code === "NO_COMMITS_TODAY") {
         setShowNoCommitDialog(true);
@@ -129,6 +132,14 @@ export function ReportForm({
       toast.success(res.message || "Draft laporan berhasil di-generate!");
     }
     setGenerating(false);
+  };
+
+  const handleGenerateButtonClick = () => {
+    if (!showGenerateOptions) {
+      setShowGenerateOptions(true);
+      return;
+    }
+    void handleGenerateAI(false);
   };
 
   const handleSave = async (e: React.FormEvent<HTMLFormElement>) => {
@@ -231,7 +242,7 @@ export function ReportForm({
               type="button"
               variant="secondary"
               size="sm"
-              onClick={() => handleGenerateAI(false)}
+              onClick={handleGenerateButtonClick}
               disabled={generating || isSubmitted}
               className="gap-1.5 h-10 sm:h-8 px-3 text-xs border-primary/30 text-primary hover:bg-primary-soft shrink-0 disabled:opacity-50"
             >
@@ -240,11 +251,20 @@ export function ReportForm({
               ) : (
                 <Sparkles className="w-3.5 h-3.5" />
               )}
-              {generating ? "Menganalisis..." : "Generate AI"}
+              {generating ? "Menganalisis..." : showGenerateOptions ? "Generate Sekarang" : "Generate AI"}
             </Button>
           </div>
         </div>
       </div>
+
+      {showGenerateOptions && <div className="rounded-sm border border-primary/20 bg-primary-soft/30 p-3 space-y-2">
+        <div className="text-xs font-semibold text-ink-primary">Sumber Generate AI</div>
+        <div className="flex gap-2">
+          <Button type="button" size="sm" variant={generateMode === "DESCRIPTION" ? "default" : "outline"} onClick={() => setGenerateMode("DESCRIPTION")} className="text-xs">Deskripsi Kerja</Button>
+          <Button type="button" size="sm" variant={generateMode === "REPOSITORY" ? "default" : "outline"} onClick={() => setGenerateMode("REPOSITORY")} className="text-xs">Repository GitHub</Button>
+        </div>
+        {generateMode === "DESCRIPTION" && <Textarea value={workDescription} onChange={(e) => setWorkDescription(e.target.value)} rows={3} placeholder="Tuliskan pekerjaan magang, misalnya pengarsipan dokumen atau pembaruan rekap administrasi." className="text-xs" />}
+      </div>}
 
       {isSubmitted && (
         <div className="flex items-start sm:items-center gap-2.5 p-3 sm:p-3.5 rounded-sm bg-primary/10 border border-primary/30 text-xs text-primary animate-in fade-in duration-150">

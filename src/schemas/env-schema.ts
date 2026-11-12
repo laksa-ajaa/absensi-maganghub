@@ -8,6 +8,10 @@ export const envSchema = z.object({
   OPENAI_API_KEY: z.string().optional(),
   OPENAI_BASE_URL: z.string().optional(),
   OPENAI_MODEL: z.string().optional(),
+  DEFAULT_AI_API_KEY: z.string().optional(),
+  DEFAULT_AI_BASE_URL: z.string().url().optional(),
+  DEFAULT_AI_MODEL: z.string().optional(),
+  GROQ_API_KEY: z.string().optional(),
   MAGANGHUB_PROXY_URL: z.string().optional(),
   NODE_ENV: z.enum(["development", "production", "test"]).default("development"),
 });
