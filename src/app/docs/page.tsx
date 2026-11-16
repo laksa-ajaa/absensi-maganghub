@@ -384,7 +384,7 @@ export default function DocsPage() {
               <div className="space-y-6">
                 <div className="border-b border-hairline pb-4">
                   <h2 className="text-base font-semibold text-ink-primary">
-                    6. Automasi Terjadwal (Cron VPS / Webhook)
+                    6. Automasi Terjadwal (Scheduler VPS)
                   </h2>
                   <p className="text-xs text-ink-secondary mt-1">
                     Jalankan submit otomatis setiap hari tanpa harus membuka web app.
@@ -393,23 +393,23 @@ export default function DocsPage() {
 
                 <div className="space-y-4 text-xs text-ink-secondary leading-relaxed">
                   <p>
-                    Setiap pengguna memiliki token rahasia (<code>webhookKey</code>). Cukup pasang perintah <code>curl</code> pada
-                    crontab server VPS Linux atau scheduler cloud (seperti GitHub Actions / Railway Worker).
+                    Admin memasang satu scheduler global di VPS. Setelah itu setiap pengguna cukup mengaktifkan automasi
+                    dan menyimpan jadwalnya di menu Pengaturan.
                   </p>
 
                   <h3 className="text-xs font-mono uppercase tracking-wider text-primary font-semibold">
-                    Contoh Perintah Crontab (Senin - Sabtu pukul 13:50 WIB):
+                    Perintah Scheduler Global (dipasang satu kali oleh admin):
                   </h3>
 
                   <div className="relative">
                     <pre className="bg-canvas-deep border border-hairline rounded-md p-4 text-[11px] font-mono text-ink-primary overflow-x-auto">
-{`50 13 * * 1-6 /usr/bin/curl -sS -X POST https://domain-anda.com/api/cron/trigger \\
-  -H "Authorization: Bearer <WEBHOOK_TOKEN_ANDA>" >> /var/log/maganghub.log 2>&1`}
+{`* * * * * /usr/bin/curl -fsS -X POST https://domain-anda.com/api/cron/scheduler \\
+  -H "Authorization: Bearer <CRON_SCHEDULER_SECRET>" >> /home/tanaman/maganghub-scheduler.log 2>&1`}
                     </pre>
                     <button
                       onClick={() =>
                         copyToClipboard(
-                          `50 13 * * 1-6 /usr/bin/curl -sS -X POST https://domain-anda.com/api/cron/trigger -H "Authorization: Bearer <WEBHOOK_TOKEN_ANDA>" >> /var/log/maganghub.log 2>&1`,
+                          `* * * * * /usr/bin/curl -fsS -X POST https://domain-anda.com/api/cron/scheduler -H "Authorization: Bearer <CRON_SCHEDULER_SECRET>" >> /home/tanaman/maganghub-scheduler.log 2>&1`,
                           "cron"
                         )
                       }

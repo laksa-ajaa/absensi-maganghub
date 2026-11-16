@@ -3,14 +3,12 @@
 import { useState } from "react";
 import toast from "react-hot-toast";
 import { Button } from "@/components/ui/button";
-import { WebhookCurlBox } from "@/components/webhook-curl-box";
 import { toggleAutomation, updateAutomationPreferences } from "@/actions/settings-actions";
 import { Cpu, Clock, Calendar, MapPin } from "lucide-react";
 import { DEFAULT_REPORT_CONTENT } from "@/lib/report-defaults";
 
 interface AutomationConfigCardProps {
   isEnabled: boolean;
-  webhookKey: string;
   scheduleTime?: string;
   scheduleDays?: string;
   latitude?: number | null;
@@ -40,7 +38,6 @@ function parseDays(daysStr: string): number[] {
 
 export function AutomationConfigCard({
   isEnabled: initialEnabled,
-  webhookKey,
   scheduleTime = "13:50",
   scheduleDays = "1,2,3,4,5,6",
   latitude,
@@ -161,7 +158,7 @@ export function AutomationConfigCard({
               Metode Eksekusi &amp; Automasi
             </h2>
             <p className="text-xs text-ink-secondary">
-              Pilih mode submit manual 1-klik atau automasi cron VPS/Railway
+              Pilih submit manual atau automasi terjadwal
             </p>
           </div>
         </div>
@@ -234,7 +231,7 @@ export function AutomationConfigCard({
             )}
           </div>
           <p className="text-xs text-ink-secondary leading-relaxed">
-            Eksekusi submit otomatis sesuai jadwal melalui crontab VPS pribadi, Railway, atau GitHub Actions menggunakan Webhook Token unik.
+              Scheduler server akan menjalankan submit otomatis sesuai jadwal yang kamu simpan.
           </p>
         </div>
       </div>
@@ -388,16 +385,6 @@ export function AutomationConfigCard({
         </div>
       </form>
 
-      {/* Webhook Box (Visible when Cron is enabled) */}
-      {isEnabled && (
-        <div className="pt-4 border-t border-hairline">
-          <WebhookCurlBox
-            webhookKey={webhookKey}
-            autoSubmitTime={scheduleTime}
-            scheduleDays={selectedDays.join(",")}
-          />
-        </div>
-      )}
     </div>
   );
 }

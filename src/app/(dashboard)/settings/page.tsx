@@ -12,7 +12,6 @@ import { MaganghubCredentialCard } from "@/components/maganghub-credential-card"
 import { GithubRepoCard } from "@/components/github-repo-card";
 import { AutomationConfigCard } from "@/components/automation-config-card";
 import { AiConfigCard } from "@/components/ai-config-card";
-import crypto from "node:crypto";
 import { db } from "@/lib/db";
 import { hasDefaultAiConfig } from "@/lib/ai";
 
@@ -50,7 +49,6 @@ export default async function SettingsPage() {
       isEnabled: false,
       scheduleTime: "13:50",
       scheduleDays: "1,2,3,4,5,6",
-      webhookKey: crypto.randomBytes(24).toString("hex"),
     });
   }
 
@@ -103,7 +101,6 @@ export default async function SettingsPage() {
 
         <AutomationConfigCard
           isEnabled={activeAutomation.isEnabled}
-          webhookKey={activeAutomation.webhookKey}
           scheduleTime={activeAutomation.scheduleTime}
           scheduleDays={activeAutomation.scheduleDays || "1,2,3,4,5,6"}
           latitude={activeAutomation.latitude}

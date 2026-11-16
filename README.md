@@ -194,6 +194,22 @@ npm run start
    - Jika sudah ada draf, sistem mengirimkan draf yang ada.
    - Respon asli dari portal Monev (HTTP 200, 409, 422, dsb.) dicatat ke tabel log audit.
 
+#### Scheduler Global VPS (opsional)
+
+Jika aplikasi berjalan di VPS yang sama, admin dapat memasang satu cron global sehingga user tidak perlu memasang crontab masing-masing. Tambahkan secret berikut ke `.env` production:
+
+```env
+CRON_SCHEDULER_SECRET="buat-secret-acak-yang-panjang"
+```
+
+Lalu pasang satu baris di `crontab -e`:
+
+```bash
+* * * * * /usr/bin/curl -fsS -X POST https://domain-anda.com/api/cron/scheduler -H "Authorization: Bearer buat-secret-acak-yang-panjang" >> /home/tanaman/maganghub-scheduler.log 2>&1
+```
+
+Scheduler akan membaca semua preferensi automasi aktif dari database dan menjalankan submit pada jam serta hari yang dipilih user.
+
 ### 5. Melihat Riwayat & Menghapus Draft (`/reports/history`)
 1. Buka menu **Riwayat Laporan** di sidebar.
 2. Gunakan kolom pencarian dan filter status (`ALL`, `DRAFT`, `SUBMITTED`, `FAILED`) untuk menemukan laporan.
@@ -207,6 +223,7 @@ npm run start
 | Method | Endpoint | Deskripsi | Autentikasi | Rate Limit |
 | :--- | :--- | :--- | :--- | :--- |
 | `POST` | `/api/cron/trigger` | Memicu eksekusi submit harian untuk user pemilik webhook | Header `Authorization: Bearer <key>` | 10 req/menit per IP |
+| `POST` | `/api/cron/scheduler` | Memeriksa dan menjalankan semua automasi aktif sesuai jadwal | Header `Authorization: Bearer <CRON_SCHEDULER_SECRET>` | - |
 | `GET` | `/api/github/commits` | Ambil daftar commit hari ini dari repository yang dilacak | Session Cookie (Auth.js) | - |
 | `GET/POST` | `/api/auth/[...nextauth]` | Endpoint autentikasi Auth.js v5 | Public / OAuth Callback | - |
 
