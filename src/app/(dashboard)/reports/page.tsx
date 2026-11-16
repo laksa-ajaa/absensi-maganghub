@@ -98,6 +98,11 @@ export default async function ReportsPage({ searchParams }: ReportsPageProps) {
         }}
         initialLatitude={automation?.latitude}
         initialLongitude={automation?.longitude}
+          templateContent={{
+            activity: automation?.defaultActivityTemplate,
+            learning: automation?.defaultLearningTemplate,
+            obstacles: automation?.defaultObstaclesTemplate,
+          }}
       />
 
       {/* History Preview Card */}

@@ -24,6 +24,20 @@ export interface SubmitResult {
   data?: unknown;
 }
 
+export interface MonevProfile {
+  id?: string;
+  participant_id?: string;
+  participantId?: string;
+  [key: string]: unknown;
+}
+
+export interface MonevGetResult<T> {
+  success: boolean;
+  httpCode: number;
+  data?: T;
+  message?: string;
+}
+
 const MONEV_API_BASE = "https://monev-api.maganghub.kemnaker.go.id/api/v1";
 const FRONTEND_BUILD_ID = "5554ff014eccd220f80524df263ae513d8ce1e25-production";
 const DEFAULT_USER_AGENT =
@@ -114,6 +128,17 @@ function getHttpClient() {
   return axios.create({
     httpsAgent: new https.Agent({ family: 4, keepAlive: true }),
   });
+}
+
+function getApiHeaders(token: string) {
+  return {
+    Authorization: `Bearer ${token}`,
+    Accept: "application/json",
+    "X-Frontend-Build-ID": FRONTEND_BUILD_ID,
+    Referer: "https://monev.maganghub.kemnaker.go.id/",
+    Origin: "https://monev.maganghub.kemnaker.go.id",
+    ...BROWSER_HEADERS,
+  };
 }
 
 export class MagangHubApiClient {
@@ -423,6 +448,72 @@ export class MagangHubApiClient {
         success: false,
         httpCode: 500,
         message: msg,
+      };
+    }
+  }
+
+  /** Read the authenticated participant profile from Monev. */
+  static async getCurrentUser(token: string): Promise<MonevGetResult<MonevProfile>> {
+    return this.getJson<MonevProfile>("/users/me", token);
+  }
+
+  /** Read attendance records for a participant and date range. */
+  static async getAttendances(
+    token: string,
+    params: { participantId: string; startDate: string; endDate: string }
+  ): Promise<MonevGetResult<unknown>> {
+    return this.getJson("/attendances", token, {
+      participant_id: params.participantId,
+      start_date: params.startDate,
+      end_date: params.endDate,
+    });
+  }
+
+  /** Read daily log records for a participant and date. */
+  static async getDailyLogs(
+    token: string,
+    params: { participantId: string; date: string; limit?: number }
+  ): Promise<MonevGetResult<unknown>> {
+    return this.getJson("/daily-logs", token, {
+      date: params.date,
+      participant_id: params.participantId,
+      limit: params.limit ?? 100,
+    });
+  }
+
+  private static async getJson<T>(
+    path: string,
+    token: string,
+    params?: Record<string, string | number>
+  ): Promise<MonevGetResult<T>> {
+    try {
+      const response = await getHttpClient().get(`${MONEV_API_BASE}${path}`, {
+        params,
+        headers: getApiHeaders(token),
+        timeout: 15000,
+      });
+
+      return {
+        success: true,
+        httpCode: response.status,
+        data: response.data,
+      };
+    } catch (error) {
+      if (axios.isAxiosError(error)) {
+        const status = error.response?.status || 500;
+        const payload = error.response?.data as { message?: string } | undefined;
+        return {
+          success: false,
+          httpCode: status,
+          message: payload?.message || error.message,
+          data: error.response?.data,
+        };
+      }
+
+      return {
+        success: false,
+        httpCode: 500,
+        message: error instanceof Error ? error.message : "Gagal membaca data Monev.",
       };
     }
   }

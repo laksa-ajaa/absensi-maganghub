@@ -160,8 +160,73 @@ export async function testMaganghubConnection(): Promise<{
     const decryptedJson = decrypt(cred.encryptedPassword, cred.iv, cred.authTag);
     const { email, password } = JSON.parse(decryptedJson);
 
-    // Call direct REST API login
-    await MagangHubApiClient.login(email, password);
+    // Call direct REST API login, then verify the token against the same
+    // authenticated profile endpoint used by the synchronization layer.
+    const authResult = await MagangHubApiClient.login(email, password);
+    const profileResult = await MagangHubApiClient.getCurrentUser(authResult.accessToken);
+    if (!profileResult.success) {
+      throw new Error(
+        `Login berhasil, tetapi GET /users/me gagal (${profileResult.httpCode}): ${profileResult.message || "respons tidak valid"}`
+      );
+    }
+
+    const profilePayload = profileResult.data as Record<string, unknown> | undefined;
+    const profileData = (profilePayload?.data || profilePayload || {}) as Record<string, unknown>;
+    const participantId = String(
+      profileData.participant_id || profileData.participantId || profileData.id || ""
+    );
+    const countRecords = (payload: unknown) => {
+      if (Array.isArray(payload)) return payload.length;
+      if (!payload || typeof payload !== "object") return 0;
+      const data = payload as Record<string, unknown>;
+      for (const key of ["data", "items", "records", "results"]) {
+        const nested = data[key];
+        if (Array.isArray(nested)) return nested.length;
+        if (nested && typeof nested === "object") {
+          const nestedCount = countRecords(nested);
+          if (nestedCount) return nestedCount;
+        }
+      }
+      return 1;
+    };
+    const firstRecord = (payload: unknown): Record<string, unknown> | null => {
+      if (Array.isArray(payload)) {
+        const first = payload.find((item) => item && typeof item === "object");
+        return first && typeof first === "object" ? first as Record<string, unknown> : null;
+      }
+      if (!payload || typeof payload !== "object") return null;
+      const data = payload as Record<string, unknown>;
+      for (const key of ["data", "items", "records", "results"]) {
+        const found = firstRecord(data[key]);
+        if (found) return found;
+      }
+      return data;
+    };
+    const recordPreview = (payload: unknown) => {
+      const record = firstRecord(payload);
+      if (!record) return "-";
+      return JSON.stringify({
+        date: record.date,
+        status: record.status,
+        approval_status: record.approval_status,
+        state: record.state,
+      });
+    };
+
+    const attendanceResult = participantId
+      ? await MagangHubApiClient.getAttendances(authResult.accessToken, {
+          participantId,
+          startDate: "2026-10-21",
+          endDate: "2026-11-20",
+        })
+      : null;
+    const dailyLogResult = participantId
+      ? await MagangHubApiClient.getDailyLogs(authResult.accessToken, {
+          participantId,
+          date: "2026-10-01",
+          limit: 100,
+        })
+      : null;
 
     await db.maganghubCredential.update({
       where: { userId: session.user.id },
@@ -177,7 +242,7 @@ export async function testMaganghubConnection(): Promise<{
 
     return {
       success: true,
-      message: "Koneksi berhasil! Akun valid dan berhasil terautentikasi di SSO Kemnaker / Monev.",
+      message: `Koneksi berhasil. /users/me 200; /attendances ${attendanceResult?.httpCode ?? "-"} (${countRecords(attendanceResult?.data)} record, field: ${Object.keys(firstRecord(attendanceResult?.data) || {}).join(", ") || "-"}, contoh: ${recordPreview(attendanceResult?.data)}); /daily-logs ${dailyLogResult?.httpCode ?? "-"} (${countRecords(dailyLogResult?.data)} record, field: ${Object.keys(firstRecord(dailyLogResult?.data) || {}).join(", ") || "-"}, contoh: ${recordPreview(dailyLogResult?.data)}).`,
     };
   } catch (err) {
     const msg =

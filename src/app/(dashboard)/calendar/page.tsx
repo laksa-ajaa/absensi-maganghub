@@ -28,12 +28,16 @@ export default async function CalendarPage() {
       <div className="flex flex-wrap items-center gap-6 p-4 rounded-md bg-canvas-subtle border border-hairline text-xs">
         <span className="text-ink-muted">Keterangan:</span>
         <div className="flex items-center gap-2">
-          <span className="w-2.5 h-2.5 rounded-xs bg-primary" />
-          <span className="text-ink-secondary">Terkirim (Submitted)</span>
+          <span className="w-2.5 h-2.5 rounded-xs bg-success" />
+          <span className="text-ink-secondary">Terkirim / Submitted</span>
         </div>
         <div className="flex items-center gap-2">
           <span className="w-2.5 h-2.5 rounded-xs bg-warning" />
           <span className="text-ink-secondary">Draft / Menunggu</span>
+        </div>
+        <div className="flex items-center gap-2">
+          <span className="w-2.5 h-2.5 rounded-xs bg-info" />
+          <span className="text-ink-secondary">Siap dikirim</span>
         </div>
         <div className="flex items-center gap-2">
           <span className="w-2.5 h-2.5 rounded-xs bg-error" />

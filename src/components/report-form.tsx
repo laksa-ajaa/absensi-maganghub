@@ -7,10 +7,11 @@ import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { Input } from "@/components/ui/input";
 import { ConfirmDialog } from "@/components/ui/confirm-dialog";
-import { generateReportDraft, saveReportDraft } from "@/actions/report-actions";
+import { generateReportDraft, saveReportDraft, submitReportAction } from "@/actions/report-actions";
 import { saveLocationCoordinates } from "@/actions/settings-actions";
 import type { ReportItem } from "@/schemas/report-schema";
-import { Sparkles, Save, CheckCircle2, AlertTriangle, Loader2, Lock, MapPin } from "lucide-react";
+import { Sparkles, Save, Send, CheckCircle2, AlertTriangle, Loader2, Lock, MapPin, FileText } from "lucide-react";
+import { DEFAULT_REPORT_CONTENT } from "@/lib/report-defaults";
 
 export type ReportFormData = Partial<ReportItem>;
 
@@ -25,6 +26,11 @@ interface ReportFormProps {
     modelName?: string;
     provider?: string;
   };
+  templateContent?: {
+    activity?: string | null;
+    learning?: string | null;
+    obstacles?: string | null;
+  };
 }
 
 export function ReportForm({
@@ -34,6 +40,7 @@ export function ReportForm({
   initialLongitude,
   onDateChange,
   aiConfig,
+  templateContent,
 }: ReportFormProps) {
   const router = useRouter();
   const [isPending, startTransition] = useTransition();
@@ -44,6 +51,7 @@ export function ReportForm({
   const [obstacles, setObstacles] = useState(initialReport?.obstacles || "");
   const [generating, setGenerating] = useState(false);
   const [saving, setSaving] = useState(false);
+  const [submitting, setSubmitting] = useState(false);
   const [showNoCommitDialog, setShowNoCommitDialog] = useState(false);
   const [latitude, setLatitude] = useState(
     initialLatitude == null ? "" : String(initialLatitude)
@@ -142,6 +150,14 @@ export function ReportForm({
     void handleGenerateAI(false);
   };
 
+  const handleUseTemplate = () => {
+    if (isSubmitted) return;
+    setActivity(templateContent?.activity?.trim() || DEFAULT_REPORT_CONTENT.activity);
+    setLearning(templateContent?.learning?.trim() || DEFAULT_REPORT_CONTENT.learning);
+    setObstacles(templateContent?.obstacles?.trim() || DEFAULT_REPORT_CONTENT.obstacles);
+    toast.success("Template berhasil dimasukkan ke editor.");
+  };
+
   const handleSave = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     if (isSubmitted) {
@@ -161,6 +177,37 @@ export function ReportForm({
       toast.success(res.message || "Draft berhasil disimpan.");
     }
     setSaving(false);
+  };
+
+  const handleSubmitToMonev = async () => {
+    if (isSubmitted) return;
+    if (!isFormValid) {
+      toast.error("Lengkapi tiga bagian laporan minimal 100 karakter sebelum submit.");
+      return;
+    }
+
+    setSubmitting(true);
+    const formData = new FormData();
+    formData.set("date", date);
+    formData.set("activity", activity);
+    formData.set("learning", learning);
+    formData.set("obstacles", obstacles);
+
+    const draftResult = await saveReportDraft(formData);
+    if (!draftResult.success) {
+      toast.error(draftResult.error.message);
+      setSubmitting(false);
+      return;
+    }
+
+    const submitResult = await submitReportAction(date);
+    if (submitResult.success) {
+      toast.success(submitResult.message);
+      router.refresh();
+    } else {
+      toast.error(submitResult.message);
+    }
+    setSubmitting(false);
   };
 
   const renderCharCounter = (text: string) => {
@@ -238,21 +285,35 @@ export function ReportForm({
               )}
             </div>
 
-            <Button
-              type="button"
-              variant="secondary"
-              size="sm"
-              onClick={handleGenerateButtonClick}
-              disabled={generating || isSubmitted}
-              className="gap-1.5 h-10 sm:h-8 px-3 text-xs border-primary/30 text-primary hover:bg-primary-soft shrink-0 disabled:opacity-50"
-            >
-              {generating ? (
-                <Loader2 className="w-3.5 h-3.5 animate-spin" />
-              ) : (
-                <Sparkles className="w-3.5 h-3.5" />
-              )}
-              {generating ? "Menganalisis..." : showGenerateOptions ? "Generate Sekarang" : "Generate AI"}
-            </Button>
+            <div className="flex items-center gap-2">
+              <Button
+                type="button"
+                variant="outline"
+                size="sm"
+                onClick={handleUseTemplate}
+                disabled={isSubmitted}
+                className="gap-1.5 h-10 sm:h-8 px-3 text-xs text-primary border-primary/30 hover:bg-primary-soft shrink-0"
+                title="Isi tiga bagian laporan menggunakan template"
+              >
+                <FileText className="w-3.5 h-3.5" />
+                Pakai Template
+              </Button>
+              <Button
+                type="button"
+                variant="secondary"
+                size="sm"
+                onClick={handleGenerateButtonClick}
+                disabled={generating || isSubmitted}
+                className="gap-1.5 h-10 sm:h-8 px-3 text-xs border-primary/30 text-primary hover:bg-primary-soft shrink-0 disabled:opacity-50"
+              >
+                {generating ? (
+                  <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                ) : (
+                  <Sparkles className="w-3.5 h-3.5" />
+                )}
+                {generating ? "Menganalisis..." : showGenerateOptions ? "Generate Sekarang" : "Generate AI"}
+              </Button>
+            </div>
           </div>
         </div>
       </div>
@@ -400,21 +461,33 @@ export function ReportForm({
             )}
           </div>
 
-          <Button
-            type="submit"
-            variant={isSubmitted ? "outline" : "secondary"}
-            disabled={saving || isSubmitted}
-            className="w-full sm:w-auto gap-2 text-xs h-10 sm:h-8 font-semibold"
-          >
-            {saving ? (
-              <Loader2 className="w-3.5 h-3.5 animate-spin" />
-            ) : isSubmitted ? (
-              <Lock className="w-3.5 h-3.5 text-primary" />
-            ) : (
-              <Save className="w-3.5 h-3.5" />
-            )}
-            {isSubmitted ? "Laporan Terkunci (Submitted)" : "Simpan Draft"}
-          </Button>
+          <div className="flex flex-col sm:flex-row gap-2">
+            <Button
+              type="submit"
+              variant={isSubmitted ? "outline" : "secondary"}
+              disabled={saving || submitting || isSubmitted}
+              className="w-full sm:w-auto gap-2 text-xs h-10 sm:h-8 font-semibold"
+            >
+              {saving ? (
+                <Loader2 className="w-3.5 h-3.5 animate-spin" />
+              ) : isSubmitted ? (
+                <Lock className="w-3.5 h-3.5 text-primary" />
+              ) : (
+                <Save className="w-3.5 h-3.5" />
+              )}
+              {isSubmitted ? "Laporan Terkunci (Submitted)" : "Simpan Draft"}
+            </Button>
+            <Button
+              type="button"
+              variant="emerald"
+              onClick={handleSubmitToMonev}
+              disabled={saving || submitting || isSubmitted || !isFormValid}
+              className="w-full sm:w-auto gap-2 text-xs h-10 sm:h-8 font-semibold"
+            >
+              {submitting ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Send className="w-3.5 h-3.5" />}
+              {submitting ? "Mengirim ke Monev..." : "Submit ke Monev"}
+            </Button>
+          </div>
         </div>
       </form>
 

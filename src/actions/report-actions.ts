@@ -15,6 +15,21 @@ import {
   type ReportItem,
 } from "@/schemas/report-schema";
 import type { ApiResponse } from "@/types/api";
+import { getCalendarReportsForDateRange } from "@/services/report-service";
+
+export async function fetchCalendarReportsForMonth(
+  startDate: string,
+  endDate: string
+) {
+  const session = await auth();
+  if (!session?.user?.id) return [];
+
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(startDate) || !/^\d{4}-\d{2}-\d{2}$/.test(endDate)) {
+    return [];
+  }
+
+  return getCalendarReportsForDateRange(session.user.id, startDate, endDate);
+}
 
 export async function generateReportDraft(
   dateStr: string,
@@ -270,7 +285,7 @@ export async function saveReportDraft(
   }
 }
 
-export async function submitReportAction(): Promise<{
+export async function submitReportAction(dateStr?: string): Promise<{
   readonly success: boolean;
   readonly message: string;
   readonly error?: string;
@@ -282,7 +297,7 @@ export async function submitReportAction(): Promise<{
 
   try {
     const { executeUserDailySubmit } = await import("@/lib/submit-orchestrator");
-    const result = await executeUserDailySubmit(session.user.id, "MANUAL");
+    const result = await executeUserDailySubmit(session.user.id, "MANUAL", dateStr);
 
     revalidatePath("/dashboard");
     revalidatePath("/reports");

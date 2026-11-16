@@ -64,9 +64,9 @@ export function Sidebar({ role = "USER", onCloseMobile }: SidebarProps) {
   }
 
   return (
-    <aside className="w-64 bg-canvas-deep border-r border-hairline flex flex-col h-full shrink-0">
+    <aside className="w-64 bg-canvas-deep border-r-2 border-primary/40 flex flex-col h-full shrink-0">
       <div className="h-14 border-b border-hairline flex items-center px-5 gap-2.5">
-        <div className="w-7 h-7 rounded-sm bg-primary/10 border border-primary/20 flex items-center justify-center text-primary">
+        <div className="w-7 h-7 rounded-sm bg-primary/15 border-2 border-primary flex items-center justify-center text-primary shadow-[3px_3px_0_var(--accent)]">
           <Bot className="w-4 h-4" />
         </div>
         <span className="font-semibold text-sm text-ink-primary tracking-tight">

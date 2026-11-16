@@ -1,11 +1,10 @@
 "use client";
 
-import { useState } from "react";
+import { useRouter } from "next/navigation";
 import Link from "next/link";
 import toast from "react-hot-toast";
 import { Button } from "@/components/ui/button";
-import { submitReportAction } from "@/actions/report-actions";
-import { Send, CheckCircle2, AlertCircle, Loader2, KeyRound } from "lucide-react";
+import { Send, CheckCircle2, AlertCircle, KeyRound } from "lucide-react";
 
 interface QuickSubmitCardProps {
   todayStatus?: string | null;
@@ -22,32 +21,18 @@ export function QuickSubmitCard({
   isAiReady = false,
   aiModelName,
 }: QuickSubmitCardProps) {
-  const [loading, setLoading] = useState(false);
-  const [submittedSuccess, setSubmittedSuccess] = useState(false);
+  const router = useRouter();
 
-  const handleSubmit = async () => {
+  const handleSubmit = () => {
     if (!hasCredential) {
       toast.error("Harap konfigurasi email & password MagangHub Anda di menu Pengaturan terlebih dahulu.");
       return;
     }
 
-    setLoading(true);
-
-    const res = await submitReportAction();
-    if ("error" in res && res.error) {
-      toast.error(res.error);
-    } else if ("message" in res) {
-      if (res.success) {
-        setSubmittedSuccess(true);
-        toast.success(res.message);
-      } else {
-        toast.error(res.message);
-      }
-    }
-    setLoading(false);
+    router.push(`/reports?date=${todayDate}`);
   };
 
-  const isSubmitted = todayStatus === "SUBMITTED" || submittedSuccess;
+  const isSubmitted = todayStatus === "SUBMITTED";
 
   return (
     <div className="bg-canvas-subtle border border-hairline rounded-md p-4 sm:p-6 flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
@@ -91,7 +76,7 @@ export function QuickSubmitCard({
             ? "Akun MagangHub belum dikonfigurasi. Atur kredensial login Monev di menu Pengaturan terlebih dahulu untuk mengaktifkan fitur submit kehadiran."
             : isSubmitted
             ? "Kehadiran dan laporan harian Anda untuk hari ini sudah tercatat di Monev Kemnaker."
-            : "Tekan tombol di samping untuk auto-generate dan submit laporan harian langsung ke portal Monev."}
+            : "Buka editor untuk memeriksa laporan, memakai template bila perlu, lalu submit ke portal Monev."}
         </p>
       </div>
 
@@ -109,7 +94,7 @@ export function QuickSubmitCard({
       ) : (
         <Button
           onClick={handleSubmit}
-          disabled={loading || isSubmitted}
+          disabled={isSubmitted}
           variant={isSubmitted ? "outline" : "emerald"}
           className={`w-full md:w-auto gap-2 shrink-0 h-10 sm:h-9 text-xs font-semibold ${
             isSubmitted
@@ -117,16 +102,12 @@ export function QuickSubmitCard({
               : ""
           }`}
         >
-          {loading ? (
-            <Loader2 className="w-4 h-4 animate-spin" />
-          ) : isSubmitted ? (
+          {isSubmitted ? (
             <CheckCircle2 className="w-4 h-4 text-primary" />
           ) : (
             <Send className="w-4 h-4" />
           )}
-          {loading
-            ? "Mengirim ke Monev..."
-            : isSubmitted
+          {isSubmitted
             ? "Sudah Terkirim"
             : "Submit Kehadiran Sekarang"}
         </Button>
