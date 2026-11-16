@@ -175,7 +175,7 @@ export async function testMaganghubConnection(): Promise<{
     const participantId = String(
       profileData.participant_id || profileData.participantId || profileData.id || ""
     );
-    const countRecords = (payload: unknown) => {
+    const countRecords = (payload: unknown): number => {
       if (Array.isArray(payload)) return payload.length;
       if (!payload || typeof payload !== "object") return 0;
       const data = payload as Record<string, unknown>;
@@ -183,7 +183,7 @@ export async function testMaganghubConnection(): Promise<{
         const nested = data[key];
         if (Array.isArray(nested)) return nested.length;
         if (nested && typeof nested === "object") {
-          const nestedCount = countRecords(nested);
+          const nestedCount: number = countRecords(nested);
           if (nestedCount) return nestedCount;
         }
       }

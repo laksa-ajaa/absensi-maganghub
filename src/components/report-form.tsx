@@ -321,8 +321,8 @@ export function ReportForm({
       {showGenerateOptions && <div className="rounded-sm border border-primary/20 bg-primary-soft/30 p-3 space-y-2">
         <div className="text-xs font-semibold text-ink-primary">Sumber Generate AI</div>
         <div className="flex gap-2">
-          <Button type="button" size="sm" variant={generateMode === "DESCRIPTION" ? "default" : "outline"} onClick={() => setGenerateMode("DESCRIPTION")} className="text-xs">Deskripsi Kerja</Button>
-          <Button type="button" size="sm" variant={generateMode === "REPOSITORY" ? "default" : "outline"} onClick={() => setGenerateMode("REPOSITORY")} className="text-xs">Repository GitHub</Button>
+          <Button type="button" size="sm" variant={generateMode === "DESCRIPTION" ? "primary" : "outline"} onClick={() => setGenerateMode("DESCRIPTION")} className="text-xs">Deskripsi Kerja</Button>
+          <Button type="button" size="sm" variant={generateMode === "REPOSITORY" ? "primary" : "outline"} onClick={() => setGenerateMode("REPOSITORY")} className="text-xs">Repository GitHub</Button>
         </div>
         {generateMode === "DESCRIPTION" && <Textarea value={workDescription} onChange={(e) => setWorkDescription(e.target.value)} rows={3} placeholder="Tuliskan pekerjaan magang, misalnya pengarsipan dokumen atau pembaruan rekap administrasi." className="text-xs" />}
       </div>}

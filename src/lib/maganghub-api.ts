@@ -133,11 +133,11 @@ function getHttpClient() {
 function getApiHeaders(token: string) {
   return {
     Authorization: `Bearer ${token}`,
-    Accept: "application/json",
     "X-Frontend-Build-ID": FRONTEND_BUILD_ID,
     Referer: "https://monev.maganghub.kemnaker.go.id/",
     Origin: "https://monev.maganghub.kemnaker.go.id",
     ...BROWSER_HEADERS,
+    Accept: "application/json",
   };
 }
 

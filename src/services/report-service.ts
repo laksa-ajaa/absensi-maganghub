@@ -39,6 +39,8 @@ function remoteReport(record: RemoteRecord): ReportItem | null {
   const createdAt = typeof createdAtValue === "string" ? new Date(createdAtValue) : undefined;
   const updatedAt = typeof updatedAtValue === "string" ? new Date(updatedAtValue) : undefined;
 
+  const normalizedStatus = remoteStatus(record);
+
   return {
     id: `monev-${String(record.id ?? date)}`,
     date,
@@ -46,7 +48,7 @@ function remoteReport(record: RemoteRecord): ReportItem | null {
     learning: remoteText(record, "lesson_learned", "learning", "lessonLearned"),
     obstacles: remoteText(record, "obstacles", "obstacle"),
     sourceType: "Monev API",
-    status: remoteStatus(record) === "READY" ? "DRAFT" : remoteStatus(record),
+    status: normalizedStatus === "READY" ? "DRAFT" : normalizedStatus,
     createdAt: createdAt && !Number.isNaN(createdAt.getTime()) ? createdAt : undefined,
     updatedAt: updatedAt && !Number.isNaN(updatedAt.getTime()) ? updatedAt : undefined,
   };
